@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>BALAP MOTOR REALISTIS - RAFY RACING</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{background:#0a0a0a;color:#fff;font-family:'Arial Black',Arial,sans-serif;overflow:hidden;height:100vh}
+#game{position:relative;width:100%;height:100vh;overflow:hidden;background:linear-gradient(#1a2f1a,#0a1a0a)}
+canvas{display:block;width:100%;height:100%}
+#hud{position:absolute;top:0;left:0;right:0;display:flex;justify-content:space-between;padding:12px;z-index:10;pointer-events:none}
+.hud-box{background:rgba(0,0,0,.7);backdrop-filter:blur(8px);padding:8px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.2);text-align:center}
+.hud-box small{font-size:9px;color:#aaa;letter-spacing:1px}
+.hud-box b{font-size:20px;color:#ffe600}
+#speedBox b{font-size:28px;color:#00ff88}
+#controls{position:absolute;bottom:18px;left:0;right:0;display:flex;justify-content:space-between;padding:0 16px;z-index:10}
+.btn{width:72px;height:72px;border-radius:50%;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.4);backdrop-filter:blur(8px);display:flex;align-items:center;justify-content:center;font-size:28px;touch-action:none;user-select:none}
+.btn:active{background:#ffe600;transform:scale(.92)}
+#gas{width:88px;height:88px;background:#00c853;border-color:#fff;font-size:32px}
+#rem{width:88px;height:88px;background:#d50000}
+#menu{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.2),rgba(0,0,0,.9));display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:20;padding:20px;text-align:center}
+#menu h1{font-size:42px;line-height:1;text-shadow:0 4px 0 #d50000,0 8px 20px #000}
+#menu h1 span{color:#ffe600}
+#menu p{margin:12px 0 20px;color:#ccc;font-family:Arial;font-size:14px}
+.motor-pick{display:flex;gap:10px;margin:10px 0}
+.motor{width:68px;height:68px;border-radius:16px;border:3px solid transparent;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;font-size:32px}
+.motor.active{border-color:#ffe600;transform:scale(1.1)}
+.btn-start{background:#ffe600;color:#000;border:none;padding:16px 40px;border-radius:50px;font-family:'Arial Black';font-size:18px;margin-top:14px;box-shadow:0 6px 0 #b89e00}
+.btn-start:active{transform:translateY(4px);box-shadow:none}
+#count{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:120px;z-index:30;text-shadow:0 0 30px #ffe600}
+</style>
+</head>
+<body>
+<div id="game">
+<canvas id="cv"></canvas>
+<div id="hud">
+<div class="hud-box"><small>KECEPATAN</small><br><div id="speedBox"><b id="speed">0</b> <span style="font-size:12px">km/h</span></div></div>
+<div class="hud-box"><small>JARAK</small><br><b id="dist">0m</b></div>
+<div class="hud-box"><small>POSISI</small><br><b id="pos">1st</b></div>
+</div>
+<div id="controls">
+<div style="display:flex;gap:12px"><div class="btn" id="left">◀</div><div class="btn" id="right">▶</div></div>
+<div style="display:flex;gap:12px"><div class="btn" id="rem">🛑</div><div class="btn" id="gas">🔥</div></div>
+</div>
+<div id="menu">
+<h1>RAFY<br><span>RACING</span></h1>
+<p>Balap Motor Realistis • 3D • Suara Mesin • Efek Asap</p>
+<div style="font-size:12px;color:#ffe600">PILIH MOTOR LU:</div>
+<div class="motor-pick">
+<div class="motor active" data-c="#d50000" style="background:#d50000">🏍️</div>
+<div class="motor" data-c="#2962ff" style="background:#2962ff">🏍️</div>
+<div class="motor" data-c="#00c853" style="background:#00c853">🏍️</div>
+<div class="motor" data-c="#ff6d00" style="background:#ff6d00">🏍️</div>
+</div>
+<button class="btn-start" onclick="startGame()">▶ START RACE</button>
+<p style="font-size:11px;margin-top:14px;opacity:.7">Tahan 🔥 buat ngebut • ◀ ▶ buat belok • Jangan nabrak mobil!</p>
+</div>
+<div id="count">3</div>
+</div>
+<script>
+let cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let W,H,player={x:0,y:0,speed:0,color:'#d50000',w:52,h:88},keys={},traffic=[],trees=[],smoke=[],dist=0,playing=false,roadX=0;
+function resize(){W=cv.width=innerWidth;H=cv.height=innerHeight;player.x=W/2;player.y=H*0.72} resize(); addEventListener('resize',resize);
+document.querySelectorAll('.motor').forEach(m=>m.onclick=()=>{document.querySelectorAll('.motor').forEach(x=>x.classList.remove('active'));m.classList.add('active');player.color=m.dataset.c});
+function bind(id,k){let e=document.getElementById(id);e.addEventListener('touchstart',e2=>{e2.preventDefault();keys[k]=true});e.addEventListener('touchend',()=>keys[k]=false);e.addEventListener('mousedown',()=>keys[k]=true);e.addEventListener('mouseup',()=>keys[k]=false)}
+bind('gas','gas');bind('rem','rem');bind('left','left');bind('right','right');
+addEventListener('keydown',e=>{if(e.key=='ArrowLeft')keys.left=true;if(e.key=='ArrowRight')keys.right=true;if(e.key=='ArrowUp')keys.gas=true;if(e.key=='ArrowDown')keys.rem=true});
+addEventListener('keyup',e=>{if(e.key=='ArrowLeft')keys.left=false;if(e.key=='ArrowRight')keys.right=false;if(e.key=='ArrowUp')keys.gas=false;if(e.key=='ArrowDown')keys.rem=false});
+function startGame(){let c=document.getElementById('count');document.getElementById('menu').
